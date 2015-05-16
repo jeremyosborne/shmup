@@ -1,0 +1,25 @@
+{
+  "name": "shmup",
+  "version": "0.0.1",
+  "homepage": "https://github.com/jeremyosborne/shmup",
+  "private": true,
+  "authors": [
+    "Jeremy Osborne <jeremywosborne@gmail.com>"
+  ],
+  "description": "simple shoot em up.",
+  "keywords": [
+    "phaser",
+    "shmup"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "phaser": "~2.3.0"
+  }
+}
