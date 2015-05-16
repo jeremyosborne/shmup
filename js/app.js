@@ -2,6 +2,9 @@
 /* global Phaser:false */
 
 
+// TODO: Use camera and long background image.
+// TODO: Use paths for the groups of enemies.
+
 
 // Used for exploding dinos and exploding pigs.
 // Extenders Phaser.Emitter.
