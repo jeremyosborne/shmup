@@ -32,7 +32,7 @@ This is more of my rubber duck hacking with [Phaser](http://phaser.io) and video
 
 ## Playing the game
 
-Click to shoot things. Such high scores. Much wow.
+Shoot thing with your dino. Don't get hit by the pigs.
 
 
 
@@ -40,3 +40,4 @@ Click to shoot things. Such high scores. Much wow.
 
 * [Phaser](http://phaser.io) game engine.
 * [Tomas Pettersson's sfxr](http://www.drpetter.se/project_sfxr.html) for sound effects.
+
