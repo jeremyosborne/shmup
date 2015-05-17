@@ -71,23 +71,22 @@ var Pig = function(x, y) {
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
 // Pigs arrive from random corners. This is the main way pigs enter the game
 // and we assume pigs will be revived.
-Pig.prototype.randomCorner = function() {
-    // Put the pig in one of the corners of the game and start again.
-    this.revive(Phaser.Utils.chanceRoll() ? 0 : this.game.world.width,
-        Phaser.Utils.chanceRoll() ? 0 : this.game.world.height);
+Pig.prototype.randomStart = function() {
+    this.reset(this.game.world.width, this.random.integerInRange(0, this.game.world.height));
+    this.body.velocity.x = -100;
     this.alive = true;
 };
 Pig.prototype.update = function() {
     var g = this.game;
 
-    // Pigs follow the purple dino.
-    if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
-        // Conveniently returns the angle between the pig and the dino so
-        // we can face the pig towards the dino.
-        this.rotation = g.physics.arcade.moveToObject(this, this.target, 125);
-    } else {
-        this.body.velocity.set(0);
-    }
+    // Pigs go from right to left.
+    // if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
+    //     // Conveniently returns the angle between the pig and the dino so
+    //     // we can face the pig towards the dino.
+    //     this.rotation = g.physics.arcade.moveToObject(this, this.target, 125);
+    // } else {
+    //     this.body.velocity.set(0);
+    // }
 };
 // Set during init, reference to game.
 Pig.prototype.game = null;
@@ -97,6 +96,8 @@ Pig.init = function(game) {
     // WebGL doesn't like file:// protocol, need a server.
     game.load.image('pig', 'assets/sprites/pig.png');
     this.prototype.game = game;
+
+    this.prototype.random = new Phaser.RandomDataGenerator();
 };
 // Sets the target for all the pigs.
 Pig.targetForAll = function(target) {
@@ -330,7 +331,7 @@ Play.prototype.addPig = function() {
     // Bring in the replacement pig.
     var nextPig = this.pigs.getFirstDead();
     if (nextPig) {
-        nextPig.randomCorner();
+        nextPig.randomStart();
     }
 };
 Play.prototype.preload = function() {
@@ -443,11 +444,11 @@ Play.prototype.update = function() {
 
     // Note: This check caused some bizarre condition when placed before the
     // collision/overlap.
-    // if (this.pigSpawnDelay < this.game.time.now && Math.min(this.pigs.countLiving(), 10) < this.level) {
-    //     this.addPig();
-    //     // Each additional pig is added 750ms in the future.
-    //     this.pigSpawnDelay = this.game.time.now + 800;
-    // }
+    if (this.pigSpawnDelay < this.game.time.now && Math.min(this.pigs.countLiving(), 10) < this.level) {
+        this.addPig();
+        // Each additional pig is added 750ms in the future.
+        this.pigSpawnDelay = this.game.time.now + 800;
+    }
 
 };
 Play.prototype.render = function() {
