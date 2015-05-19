@@ -3,7 +3,8 @@
 
 
 // TODO: Use camera and long background image.
-// TODO: Use paths for the groups of enemies.
+// TODO: Use paths for the groups of enemies instead of just heading towards
+// the dino.
 
 
 // Used for exploding dinos and exploding pigs.
@@ -59,10 +60,12 @@ ConfettiEmitter.init = function(game) {
 var Pig = function(x, y) {
     Phaser.Sprite.call(this, this.game, x || 0, y || 0, 'pig');
     this.anchor.setTo(0.5, 0.5);
-    // For collisions.
+    // Flip right facing pig sprite around y axis.
+    this.scale.y = -1;
     this.game.physics.arcade.enable(this);
     // Make collisions a bit more forgiving.
     this.body.setSize(this.width - 8, this.height - 8);
+
     this.game.add.existing(this);
 
     // Managed by the group, starts off dead.
@@ -77,15 +80,15 @@ Pig.prototype.randomStart = function() {
     this.alive = true;
 };
 Pig.prototype.update = function() {
-    //var g = this.game;
+    var g = this.game;
     // Pigs go from right to left.
-    // if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
-    //     // Conveniently returns the angle between the pig and the dino so
-    //     // we can face the pig towards the dino.
-    //     this.rotation = g.physics.arcade.moveToObject(this, this.target, 125);
-    // } else {
-    //     this.body.velocity.set(0);
-    // }
+    if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
+        // Conveniently returns the angle between the pig and the dino so
+        // we can face the pig towards the dino.
+        this.rotation = g.physics.arcade.moveToObject(this, this.target, 125);
+    } else {
+        this.body.velocity.set(0);
+    }
 };
 // Set during init, reference to game.
 Pig.prototype.game = null;
@@ -406,8 +409,7 @@ Play.prototype.create = function() {
     }.bind(this));
     this.bulletTimer.start();
 
-    // TODO: Have pigs trace a path.
-    // Pig.targetForAll(this.purpleDino);
+    Pig.targetForAll(this.purpleDino);
     this.pigs = this.game.add.group();
     for (i = 0; i < 10; i++) {
         this.pigs.add(new Pig());
