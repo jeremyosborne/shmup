@@ -77,8 +77,7 @@ Pig.prototype.randomStart = function() {
     this.alive = true;
 };
 Pig.prototype.update = function() {
-    var g = this.game;
-
+    //var g = this.game;
     // Pigs go from right to left.
     // if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
     //     // Conveniently returns the angle between the pig and the dino so
@@ -346,6 +345,26 @@ Play.prototype.preload = function() {
 };
 Play.prototype.create = function() {
     var g = this.game;
+    var i;
+
+
+    var confetti = game.add.bitmapData(5, 5, "bullet", true);
+    // r, g, b, a
+    confetti.fill(100, 255, 100, 1);
+
+    this.bullets = game.add.group();
+    this.bullets.enableBody = true;
+    this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+    for (i = 0; i < 20; i++) {
+        var b = this.bullets.create(0, 0, this.game.cache.getBitmapData("bullet"));
+        b.name = 'bullet' + i;
+        b.exists = false;
+        b.visible = false;
+        b.checkWorldBounds = true;
+        b.events.onOutOfBounds.add(function(bullet) {
+            bullet.kill();
+        });
+    }
 
     // The background isn't meant to be tiled, but good enough for this.
     //this.background = g.add.tileSprite(0, 0, g.width, g.height, 'bg-space');
@@ -376,28 +395,21 @@ Play.prototype.create = function() {
     this.purpleDinoSplosion = new ConfettiEmitter();
     this.purpleDinoSplosion.colorize(0x942fcd);
 
-    // TODO: Turn this into a bullet launcher.
-    // this.purpleDinoFlaktulenceTimer = this.game.time.create();
-    // this.purpleDinoFlaktulenceTimer.loop(750, function() {
-    //     var direction = Phaser.Point.normalize(this.purpleDino.body.velocity);
-    //     // One of them is not zero === we're moving.
-    //     if (direction.x || direction.y) {
-    //         // Can have multiple flak on the screen, keep track of them
-    //         // for colliding with the pigs.
-    //         var flaktulence = this.flaktulence.getFirstExists(false);
-    //         // Usability fix: Place flak far enough away from the dinosaur
-    //         // so that the flax isn't placed in front of the dinosaur while
-    //         // the dinosaur is spinning in place.
-    //         flaktulence.launch(this.purpleDino.x - (direction.x * 40), this.purpleDino.y - (direction.y * 40));
-    //         this.game.sound.play("explosion-flaktulence");
-    //     }
-    // }.bind(this));
-    // this.purpleDinoFlaktulenceTimer.start();
+    this.bulletTimer = this.game.time.create();
+    this.bulletTimer.loop(100, function() {
+        var bullet = this.bullets.getFirstExists(false);
+        if (bullet) {
+           bullet.reset(this.purpleDino.x + 20, this.purpleDino.y);
+           bullet.body.velocity.x = 300;
+           //bulletTime = game.time.now + 150;
+       }
+    }.bind(this));
+    this.bulletTimer.start();
 
     // TODO: Have pigs trace a path.
     // Pig.targetForAll(this.purpleDino);
     this.pigs = this.game.add.group();
-    for (var i = 0; i < 10; i++) {
+    for (i = 0; i < 10; i++) {
         this.pigs.add(new Pig());
     }
 
