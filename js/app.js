@@ -60,8 +60,11 @@ ConfettiEmitter.init = function(game) {
 var Pig = function(x, y) {
     Phaser.Sprite.call(this, this.game, x || 0, y || 0, 'pig');
     this.anchor.setTo(0.5, 0.5);
+    // TODO: For some reason, flipping the scale negative prevents collisions
+    // of the pig. File bug for this. For now, pigs are upside down.
+    //
     // Flip right facing pig sprite around y axis.
-    this.scale.y = -1;
+    //this.scale.y = -1;
     this.game.physics.arcade.enable(this);
     // Make collisions a bit more forgiving.
     this.body.setSize(this.width - 8, this.height - 8);
@@ -358,16 +361,21 @@ Play.prototype.create = function() {
     this.bullets = game.add.group();
     this.bullets.enableBody = true;
     this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
-    for (i = 0; i < 20; i++) {
-        var b = this.bullets.create(0, 0, this.game.cache.getBitmapData("bullet"));
-        b.name = 'bullet' + i;
-        b.exists = false;
-        b.visible = false;
-        b.checkWorldBounds = true;
-        b.events.onOutOfBounds.add(function(bullet) {
-            bullet.kill();
-        });
-    }
+    this.bullets.createMultiple(30, this.game.cache.getBitmapData("bullet"));
+    this.bullets.setAll('anchor.x', 0.5);
+    this.bullets.setAll('anchor.y', 0.5);
+    this.bullets.setAll('outOfBoundsKill', true);
+    this.bullets.setAll('checkWorldBounds', true);
+    // for (i = 0; i < 20; i++) {
+    //     var b = this.bullets.create(0, 0, this.game.cache.getBitmapData("bullet"));
+    //     b.name = 'bullet' + i;
+    //     b.exists = false;
+    //     b.visible = false;
+    //     b.checkWorldBounds = true;
+    //     b.events.onOutOfBounds.add(function(bullet) {
+    //         bullet.kill();
+    //     });
+    // }
 
     // The background isn't meant to be tiled, but good enough for this.
     //this.background = g.add.tileSprite(0, 0, g.width, g.height, 'bg-space');
@@ -375,23 +383,14 @@ Play.prototype.create = function() {
     this.scoreKeeper = new ScoreKeeper(32, 32);
 
     // Start background music.
-    g.sound.stopAll();
-    g.sound.play("bg-music", 0.25, true);
+    //g.sound.stopAll();
+    // TODO: Get new background music.
+    //g.sound.play("bg-music", 0.25, true);
 
     // To make the sprite move we need to enable Arcade Physics
     g.physics.startSystem(Phaser.Physics.ARCADE);
 
     this.levelDisplay = new LevelDisplay();
-
-    // TODO: Turn this into bullets.
-    // Groups for watching flak.
-    // Ordering of adding affects the z-level. When this was in preload, the
-    // tilesprite was hiding the flak.
-    //this.flaktulence = this.game.add.group();
-    // This enforces a maximum on flatulence on the screen.
-    //for (var i = 0; i < 10; i++) {
-    //    this.flaktulence.add(new Flaktulence());
-    //}
 
     this.purpleDino = new PurpleDino(this.game.world.centerX, this.game.world.centerY);
 
@@ -399,12 +398,12 @@ Play.prototype.create = function() {
     this.purpleDinoSplosion.colorize(0x942fcd);
 
     this.bulletTimer = this.game.time.create();
-    this.bulletTimer.loop(100, function() {
+    this.bulletTimer.loop(150, function() {
         var bullet = this.bullets.getFirstExists(false);
         if (bullet) {
            bullet.reset(this.purpleDino.x + 20, this.purpleDino.y);
+           bullet.alive = true;
            bullet.body.velocity.x = 300;
-           //bulletTime = game.time.now + 150;
        }
     }.bind(this));
     this.bulletTimer.start();
@@ -444,10 +443,7 @@ Play.prototype.update = function() {
     // this.background.tilePosition.y += backgroundScroll.y / 3;
 
     // Flaktulence blows up pigs.
-    //game.physics.arcade.overlap(this.pigs, this.flaktulence, this.explodePig.bind(this));
-
-    // Flaktulence blows up dino.
-    //game.physics.arcade.overlap(this.purpleDino, this.flaktulence, this.explodePurpleDino.bind(this));
+    game.physics.arcade.overlap(this.pigs, this.bullets, this.explodePig.bind(this));
 
     // Pigs blow up dino.
     // game.physics.arcade.overlap(this.purpleDino, this.pigs, function(purpleDino, pig) {
@@ -471,15 +467,15 @@ Play.prototype.render = function() {
     //this.game.debug.pointer();
     //-----
     // Info about sprites.
-    //this.game.debug.bodyInfo(this.purpleDino, 32, this.game.world.height - 100);
+    // this.game.debug.bodyInfo(this.purpleDino, 32, this.game.world.height - 100);
     // this.game.debug.body(this.purpleDino);
     // var p = this.pigs.getFirstExists();
     // if (p) {
-    //     this.game.debug.body(p);
+    //    this.game.debug.body(p);
     // }
-    // var f = this.flaktulence.getFirstExists();
-    // if (f) {
-    //     this.game.debug.body(f);
+    // var b = this.bullets.getFirstExists();
+    // if (b) {
+    //    this.game.debug.body(b);
     // }
     // Other debug helpers.
     //-----
