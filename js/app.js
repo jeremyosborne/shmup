@@ -88,7 +88,10 @@ Pig.prototype.update = function() {
     if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
         // Conveniently returns the angle between the pig and the dino so
         // we can face the pig towards the dino.
-        this.rotation = g.physics.arcade.moveToObject(this, this.target, 125);
+        // NOTE: Adjust the rotation by PI because the game makes assumptions
+        // all things point to the right (or more fairly angles are angles)
+        // and our sprite is facing left by default.
+        this.rotation = g.physics.arcade.moveToObject(this, this.target, 125) + Math.PI;
     } else {
         this.body.velocity.set(0);
     }
@@ -446,11 +449,11 @@ Play.prototype.update = function() {
     game.physics.arcade.overlap(this.pigs, this.bullets, this.explodePig.bind(this));
 
     // Pigs blow up dino.
-    // game.physics.arcade.overlap(this.purpleDino, this.pigs, function(purpleDino, pig) {
-    //     this.explodePig(pig);
-    //
-    //     this.explodePurpleDino(purpleDino);
-    // }.bind(this));
+    game.physics.arcade.overlap(this.purpleDino, this.pigs, function(purpleDino, pig) {
+        this.explodePig(pig);
+
+        this.explodePurpleDino(purpleDino);
+    }.bind(this));
 
     // Note: This check caused some bizarre condition when placed before the
     // collision/overlap.
@@ -491,7 +494,7 @@ var End = function() {};
 End.prototype = Object.create(Phaser.State);
 End.prototype.create = function() {
     // The background isn't meant to be tiled, but good enough for this.
-    this.background = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'bg-space');
+    //this.background = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'bg-space');
 
     var text = "The End.\nClick to play again";
     if (ScoreKeeper.savedScoreIsHigh()) {
@@ -510,7 +513,7 @@ End.prototype.create = function() {
     }.bind(this));
 };
 End.prototype.update = function() {
-    this.background.tilePosition.y += 0.5;
+    //this.background.tilePosition.y += 0.5;
 };
 
 
