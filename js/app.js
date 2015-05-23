@@ -3,9 +3,39 @@
 
 
 // TODO: Use camera and long background image.
-// TODO: Use paths for the groups of enemies instead of just heading towards
-// the dino.
+// TODO: Componetize the motion into random paths or seeker pigs.
 
+
+
+// Generate a pretty damn random path.
+var randomPath = function() {
+    // vertices
+    var numv = 4;
+    // 1 dimensional
+    var genVertices = function() {
+        var vs = [];
+        var maxrange = Math.min(game.width, game.height);
+        for (var i = 0; i < numv; i++) {
+            vs[i] = game.rnd.between(0, maxrange);
+        }
+        return vs;
+    };
+    // 2 dimensional points, the ones to generate the path.
+    var vsx = genVertices();
+    var vsy = genVertices();
+    var vs = [];
+    // Interpolated path.
+    // For now, one point for each pixel of width.
+    var delta = 1 / game.width * 3;
+    for (var i = 0; i <= 1; i += delta) {
+        vs.push({
+            x: game.math.linearInterpolation(vsx, i),
+            y: game.math.linearInterpolation(vsy, i),
+        });
+    }
+
+    return vs;
+};
 
 // Used for exploding dinos and exploding pigs.
 // Extenders Phaser.Emitter.
@@ -73,28 +103,47 @@ var Pig = function(x, y) {
 
     // Managed by the group, starts off dead.
     this.kill();
+
+    // TODO: Wrap this up as a component once I like this.
+    this.randomPath = randomPath();
+    this.randomPathIndex = 0;
 };
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
 // Pigs arrive from random corners. This is the main way pigs enter the game
 // and we assume pigs will be revived.
 Pig.prototype.randomStart = function() {
     this.reset(this.game.world.width, this.random.integerInRange(0, this.game.world.height));
-    this.body.velocity.x = -100;
+    //this.body.velocity.x = -100;
     this.alive = true;
+
+    this.randomPathIndex = 0;
 };
 Pig.prototype.update = function() {
-    var g = this.game;
+    //var g = this.game;
+
+    // TODO: Add choice between seeker pigs and random walk pigs.
     // Pigs go from right to left.
-    if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
-        // Conveniently returns the angle between the pig and the dino so
-        // we can face the pig towards the dino.
-        // NOTE: Adjust the rotation by PI because the game makes assumptions
-        // all things point to the right (or more fairly angles are angles)
-        // and our sprite is facing left by default.
-        this.rotation = g.physics.arcade.moveToObject(this, this.target, 125) + Math.PI;
-    } else {
-        this.body.velocity.set(0);
+    // if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
+    //     // Conveniently returns the angle between the pig and the dino so
+    //     // we can face the pig towards the dino.
+    //     // NOTE: Adjust the rotation by PI because the game makes assumptions
+    //     // all things point to the right (or more fairly angles are angles)
+    //     // and our sprite is facing left by default.
+    //     this.rotation = g.physics.arcade.moveToObject(this, this.target, 125) + Math.PI;
+    // } else {
+    //     this.body.velocity.set(0);
+    // }
+
+    this.x = this.randomPath[this.randomPathIndex].x;
+    this.y = this.randomPath[this.randomPathIndex].y;
+
+    this.randomPathIndex += 1;
+
+    if (this.randomPathIndex >= this.randomPath.length) {
+        // TODO: Signal a call and explode?
+        this.kill();
     }
+
 };
 // Set during init, reference to game.
 Pig.prototype.game = null;
