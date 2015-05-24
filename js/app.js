@@ -7,35 +7,75 @@
 
 
 
-// Generate a pretty damn random path.
-var randomPath = function() {
-    // vertices
-    var numv = 4;
+// Generate a random path.
+//
+// Params:
+// args {Object} -> Hash of arguments.
+//
+// args.numv {Number=4} -> A positive integer representing number of vertices.
+// Necessary when xrangeMin and xrangeMax or yrangeMin and yrangeMax are used.
+//
+// args.xrange {Number[]} || args.xrangeMin and args.xrangeMax -> Either pass
+// in a static range of numbers that represent the x parts of the verticies
+// through which the path traverses, or pass the min and max x range values
+// from which random x values are created. If xrangeMin and xrangeMax are
+// passed, numv must also be passed or the default used.
+//
+// args.yrange {Number[]} || args.yrangeMin and args.yrangeMax -> Either pass
+// in a static range of numbers that represent the y parts of the verticies
+// through which the path traverses, or pass the min and max y range values
+// from which random y values are created. If yrangeMin and yrangeMax are
+// passed, numv must also be passed or the default used.
+//
+// args.stepPercent {Number} -> Floating point number of the
+//
+// Returns:
+// an array of points (Objects with .x and .y properties) that represent
+// an interpolated path.
+//
+// Requirements:
+// game {Phaser.game} -> A global reference to the currently active instance.
+var randomPath = function(args) {
+    args = args || {};
+
+    // References to external methods and properties.
+    var width = game.width;
+    var height = game.height;
+    // Phaser likes to use this a lot.
+    var randInt = game.rnd.between.bind(game.rnd);
+    var linearInterpolation = game.math.linearInterpolation.bind(game.math);
+
+    // vertices (assume 0 is just silly, so treat as falsey.).
+    var numv = args.numv ||
+        (args.xrange && args.yrange && Math.min(args.xrange.length, args.yrange.length)) ||
+        (args.xrange && args.xrange.length) ||
+        (args.yrange && args.yrange.length);
     // 1 dimensional
-    var genVertices = function() {
+    var genNumbers = function(rangeMin, rangeMax) {
         var vs = [];
-        var maxrange = Math.min(game.width, game.height);
         for (var i = 0; i < numv; i++) {
-            vs[i] = game.rnd.between(0, maxrange);
+            vs[i] = randInt(rangeMin, rangeMax);
         }
         return vs;
     };
-    // 2 dimensional points, the ones to generate the path.
-    var vsx = genVertices();
-    var vsy = genVertices();
+    // Set of two dimensional points from which to generate the path.
+    var vsx = args.xrange || genNumbers(args.xrangeMin || 0, args.xrangeMax || width);
+    var vsy = args.yrange || genNumbers(args.yrangeMin || 0, args.yrangeMax || height);
+    // Will be the resulting, interpolated path.
     var vs = [];
-    // Interpolated path.
-    // For now, one point for each pixel of width.
-    var delta = 1 / game.width * 3;
+    // Rate of change.
+    var delta = args.stepPercent || 1 / Math.max(width, height);
     for (var i = 0; i <= 1; i += delta) {
         vs.push({
-            x: game.math.linearInterpolation(vsx, i),
-            y: game.math.linearInterpolation(vsy, i),
+            x: linearInterpolation(vsx, i),
+            y: linearInterpolation(vsy, i),
         });
     }
 
     return vs;
 };
+
+
 
 // Used for exploding dinos and exploding pigs.
 // Extenders Phaser.Emitter.
@@ -105,7 +145,11 @@ var Pig = function(x, y) {
     this.kill();
 
     // TODO: Wrap this up as a component once I like this.
-    this.randomPath = randomPath();
+    this.randomPath = randomPath({
+        // Bounce up and down.
+        xrange: [game.width, game.width - 100, game.width - 300, game.width - 500, 0],
+        stepPercent: 0.005
+    });
     this.randomPathIndex = 0;
 };
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
@@ -134,16 +178,17 @@ Pig.prototype.update = function() {
     //     this.body.velocity.set(0);
     // }
 
-    this.x = this.randomPath[this.randomPathIndex].x;
-    this.y = this.randomPath[this.randomPathIndex].y;
+    var p = this.randomPath[this.randomPathIndex];
+    if (p) {
+        this.x = p.x;
+        this.y = p.y;
 
-    this.randomPathIndex += 1;
-
-    if (this.randomPathIndex >= this.randomPath.length) {
-        // TODO: Signal a call and explode?
+        this.randomPathIndex += 1;
+    } else {
+        // Kill when we run out of path. Assume that the path generates
+        // to the edges of the screen, or when we want the pig to disappear.
         this.kill();
     }
-
 };
 // Set during init, reference to game.
 Pig.prototype.game = null;
