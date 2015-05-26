@@ -7,6 +7,45 @@
 
 
 
+// Work in progress of a lightweight component system to add to the Phaser
+// sprites.
+// Notes while thinking: After reading online, and having worked with some
+// component systems and the idea of entity-component-systems in the past,
+// what I really want is the abstraction of composable types based on base types
+// without enforcing hiearchy like a lot of objects in Phaser do. Just one
+// type of game approach, we'll see if it works. I think what I most need is
+// a good set of rules, and some testing.
+//
+// A mixin function that is passed a sprite that then augments the sprite.
+var componentize = (function() {
+    var componentMixin = Object.create(null);
+    // Componentized promise to call init.
+    componentMixin.componentInit = function() {
+        this.components = [];
+    };
+    // Componentized can add components.
+    componentMixin.componentAdd = function(c) {
+        this.components.push(c);
+    };
+    // Componentized promise to call componentUpdate.
+    // Components are passed the sprite/entity. Sprite/entity promises
+    // to provide all things needed for the component.
+    componentMixin.componentUpdate = function() {
+        var num = this.components.length;
+        for (var i = 0; i < num; i++) {
+            this.components.update(this);
+        }
+    };
+    // Augment the entity/sprite prototype.
+    return function(entity) {
+        for (var prop in componentMixin) {
+            entity.prototype[prop] = componentMixin[prop];
+        }
+        return entity;
+    };
+})();
+
+
 // Generate a random path.
 //
 // Params:
@@ -151,6 +190,9 @@ var Pig = function(x, y) {
         stepPercent: 0.005
     });
     this.randomPathIndex = 0;
+
+    // Components need to be init'd per instance.
+    this.componentInit();
 };
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
 // Pigs arrive from random corners. This is the main way pigs enter the game
@@ -200,6 +242,9 @@ Pig.init = function(game) {
     this.prototype.game = game;
 
     this.prototype.random = new Phaser.RandomDataGenerator();
+
+    // Add components to the mix.
+    componentize(this);
 };
 // Sets the target for all the pigs.
 Pig.targetForAll = function(target) {
