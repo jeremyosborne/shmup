@@ -19,6 +19,21 @@ var game = new Phaser.Game(
 
 
 
+// Handle asset loading within the game loop (keeps the function simple).
+var assetQueue = {
+    q: [],
+    add: function(task) {
+        this.q.push(task);
+    },
+    load: function() {
+        for (var i = 0; i < this.q.length; i++) {
+            this.q[i]();
+        }
+    }
+};
+
+
+
 // Work in progress of a lightweight component system to add to the Phaser
 // sprites.
 // Notes while thinking: After reading online, and having worked with some
@@ -128,6 +143,10 @@ var randomPath = function(args) {
 
 
 
+assetQueue.add(function() {
+    // width, height, name, true means add to cache (later retrieval by name).
+    game.add.bitmapData(10, 10, "confetti", true).fill(255, 255, 255, 1);
+});
 // Used for exploding dinos and exploding pigs.
 // Extenders Phaser.Emitter.
 var ConfettiEmitter = function() {
@@ -161,6 +180,9 @@ ConfettiEmitter.prototype.colorize = function(color) {
 
 
 
+assetQueue.add(function() {
+    game.load.image('pig', 'assets/sprites/pig.png');
+});
 // The main antagonists. They chase the purple dino.
 var Pig = function(x, y) {
     Phaser.Sprite.call(this, this.game, x || 0, y || 0, 'pig');
@@ -241,6 +263,9 @@ Pig.targetForAll = function(target) {
 
 
 
+assetQueue.add(function() {
+    game.load.image('purple-dino', 'assets/sprites/purple-dino.png');
+});
 // Our protagonist. Follows the pointer around, let's out gas, tries to
 // blow up pigs for big points and big prizes.
 var PurpleDino = function(x, y) {
@@ -375,13 +400,8 @@ LevelDisplay.prototype.display = function(level) {
 var Title = function() {};
 Title.prototype = Object.create(Phaser.State);
 Title.prototype.preload = function() {
-    // Asset loading here. Can't conveniently be done outside the game loop
-    // or before the game loop.
-
-    // width, height, name, true means add to cache (later retrieval by name).
-    game.add.bitmapData(10, 10, "confetti", true).fill(255, 255, 255, 1);
-    game.load.image('pig', 'assets/sprites/pig.png');
-    game.load.image('purple-dino', 'assets/sprites/purple-dino.png');
+    // Load all queued up assets.
+    assetQueue.load();
 };
 Title.prototype.create = function() {
     // The background isn't meant to be tiled, but good enough for this.
