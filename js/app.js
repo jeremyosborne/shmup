@@ -2,8 +2,20 @@
 /* global Phaser:false */
 
 
-// TODO: Use camera and long background image.
+
 // TODO: Componetize the motion into random paths or seeker pigs.
+
+
+
+// Global game object.
+var game = new Phaser.Game(
+    // String dimensions are considered percentages of parent container.
+    "100", "100",
+    // Let Phaser choose the renderer.
+    Phaser.AUTO,
+    // What element do we want to use as the parent.
+    document.querySelector(".game-container")
+);
 
 
 
@@ -125,6 +137,7 @@ var ConfettiEmitter = function() {
     this.gravity = 200;
 };
 ConfettiEmitter.prototype = Object.create(Phaser.Particles.Arcade.Emitter.prototype);
+ConfettiEmitter.prototype.game = game;
 // Explode paricles at a point.
 // {Number} x, {Number} y -> Point in world to emit particles.
 ConfettiEmitter.prototype.boom = function(x, y) {
@@ -144,23 +157,6 @@ ConfettiEmitter.prototype.colorize = function(color) {
         // Give each piece of confetti a random tint.
         p.tint = color || Phaser.Color.getRandomColor();
     });
-};
-// Refence to game, set during init.
-ConfettiEmitter.prototype.game = null;
-// This is a pattern I tried out here as an experiment. Since Phaser has
-// a lot of hierarchical relationships, the main enforced being references
-// to the game that the objects are a part of, I require initialization of
-// the datatype object before it is ready. Next time, I think I'll keep
-// the game as a global object and just assume it's there.
-// This comment won't be repeated throughout the document and is here for
-// historical reference.
-ConfettiEmitter.init = function(game) {
-    // width, height, name, true means add to cache (later retrieval by name).
-    var confetti = game.add.bitmapData(10, 10, "confetti", true);
-    // r, g, b, a
-    confetti.fill(255, 255, 255, 1);
-
-    this.prototype.game = game;
 };
 
 
@@ -195,6 +191,10 @@ var Pig = function(x, y) {
     this.componentInit();
 };
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
+// Add components to the mix.
+componentize(Pig);
+Pig.prototype.game = game;
+Pig.prototype.random = new Phaser.RandomDataGenerator();
 // Pigs arrive from random corners. This is the main way pigs enter the game
 // and we assume pigs will be revived.
 Pig.prototype.randomStart = function() {
@@ -232,20 +232,8 @@ Pig.prototype.update = function() {
         this.kill();
     }
 };
-// Set during init, reference to game.
-Pig.prototype.game = null;
 // What are these pigs chasing?
 Pig.prototype.target = null;
-Pig.init = function(game) {
-    // WebGL doesn't like file:// protocol, need a server.
-    game.load.image('pig', 'assets/sprites/pig.png');
-    this.prototype.game = game;
-
-    this.prototype.random = new Phaser.RandomDataGenerator();
-
-    // Add components to the mix.
-    componentize(this);
-};
 // Sets the target for all the pigs.
 Pig.targetForAll = function(target) {
     this.prototype.target = target;
@@ -269,6 +257,7 @@ var PurpleDino = function(x, y) {
     this.game.add.existing(this);
 };
 PurpleDino.prototype = Object.create(Phaser.Sprite.prototype);
+PurpleDino.prototype.game = game;
 // The dino isn't directly .kill()ed in the game, only moved around.
 // This acts to teleport the dino back to the start when the dino dies.
 PurpleDino.prototype.toStartLocation = function() {
@@ -284,13 +273,6 @@ PurpleDino.prototype.update = function() {
         // Still face the dino to the pointer.
         this.body.velocity.set(0);
     }
-};
-// Set during init.
-PurpleDino.prototype.game = null;
-PurpleDino.init = function(game) {
-    game.load.image('purple-dino', 'assets/sprites/purple-dino.png');
-
-    this.prototype.game = game;
 };
 
 
@@ -309,6 +291,7 @@ var ScoreKeeper = function(x, y) {
     }
 };
 ScoreKeeper.prototype = Object.create(Phaser.Text.prototype);
+ScoreKeeper.prototype.game = game;
 // Default number of lives.
 ScoreKeeper.prototype.lives = 3;
 ScoreKeeper.prototype.score = 0;
@@ -336,11 +319,6 @@ ScoreKeeper.savedScoreIsHigh = function() {
 ScoreKeeper.prototype.update = function() {
     this.text = "Lives: " + this.lives + "\nScore: " + this.score + "\nHigh Score: " + this.highScore;
 };
-// Reference to game set during init.
-ScoreKeeper.prototype.game = null;
-ScoreKeeper.init = function(game) {
-    this.prototype.game = game;
-};
 
 
 
@@ -358,6 +336,7 @@ var LevelDisplay = function() {
     this.game.add.existing(this);
 };
 LevelDisplay.prototype = Object.create(Phaser.Text.prototype);
+LevelDisplay.prototype.game = game;
 LevelDisplay.prototype.display = function(level) {
     level = level || 1;
 
@@ -389,11 +368,6 @@ LevelDisplay.prototype.display = function(level) {
     this.currentTween.chain(shrink);
     this.currentTween.start();
 };
-// Reference to game set during init.
-LevelDisplay.prototype.game = null;
-LevelDisplay.init = function(game) {
-    this.prototype.game = game;
-};
 
 
 
@@ -401,13 +375,13 @@ LevelDisplay.init = function(game) {
 var Title = function() {};
 Title.prototype = Object.create(Phaser.State);
 Title.prototype.preload = function() {
-    // Treating this as the asset loading screen.
-    //this.game.load.audio("bg-music", "assets/music/vamps_-_Borderline_(Fantastic_Vamps_8-Bit_Mix)_shortened.mp3");
-    //this.game.load.audio("explosion-flaktulence", "assets/sounds/flaktulence.wav");
-    //this.game.load.audio("explosion-pig", "assets/sounds/explosion.wav");
-    //this.game.load.audio("explosion-dino", "assets/sounds/explosion2.wav");
+    // Asset loading here. Can't conveniently be done outside the game loop
+    // or before the game loop.
 
-    //this.game.load.image("bg-space", "assets/images/starfield.png");
+    // width, height, name, true means add to cache (later retrieval by name).
+    game.add.bitmapData(10, 10, "confetti", true).fill(255, 255, 255, 1);
+    game.load.image('pig', 'assets/sprites/pig.png');
+    game.load.image('purple-dino', 'assets/sprites/purple-dino.png');
 };
 Title.prototype.create = function() {
     // The background isn't meant to be tiled, but good enough for this.
@@ -441,6 +415,7 @@ Title.prototype.update = function() {
 
     //this.background.tilePosition.y += 0.5;
 };
+game.state.add("title", Title);
 
 
 
@@ -457,7 +432,7 @@ Play.prototype.levelScoreIncrement = 6;
 // Causes a transition to the end state if we've run out of lives.
 Play.prototype.explodePurpleDino = function(purpleDino) {
     this.purpleDinoSplosion.boom(purpleDino.x, purpleDino.y);
-    this.game.sound.play("explosion-dino", true);
+    //this.game.sound.play("explosion-dino", true);
     purpleDino.toStartLocation();
 
     this.scoreKeeper.decreaseLives();
@@ -480,16 +455,6 @@ Play.prototype.addPig = function() {
     if (nextPig) {
         nextPig.randomStart();
     }
-};
-Play.prototype.preload = function() {
-    // Some things need initialization. This isn't Phaser's fault, just something
-    // I'm trying out.
-    ConfettiEmitter.init(this.game);
-    //Flaktulence.init(this.game);
-    LevelDisplay.init(this.game);
-    Pig.init(this.game);
-    PurpleDino.init(this.game);
-    ScoreKeeper.init(this.game);
 };
 Play.prototype.create = function() {
     var g = this.game;
@@ -624,6 +589,7 @@ Play.prototype.render = function() {
     // Num entities registered in the game.
     //console.log(game.world.children.length);
 };
+game.state.add("play", Play);
 
 
 
@@ -654,24 +620,9 @@ End.prototype.create = function() {
 End.prototype.update = function() {
     //this.background.tilePosition.y += 0.5;
 };
-
-
-
-// Global game object.
-var game = new Phaser.Game(
-    // String dimensions are considered percentages of parent container.
-    "100", "100",
-    // Let Phaser choose the renderer.
-    Phaser.AUTO,
-    // What element do we want to use as the parent.
-    document.querySelector(".game-container")
-);
-
-
-
-// Set up the levels of our game.
-game.state.add("title", Title);
-game.state.add("play", Play);
 game.state.add("end", End);
+
+
+
 // Start the game on the title screen.
 game.state.start("title");
