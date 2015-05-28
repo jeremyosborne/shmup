@@ -47,20 +47,35 @@ var assetQueue = {
 var componentize = (function() {
     var componentMixin = Object.create(null);
     // Componentized promise to call init.
-    componentMixin.componentInit = function() {
+    componentMixin.componentsInit = function() {
         this.components = [];
     };
-    // Componentized can add components.
-    componentMixin.componentAdd = function(c) {
+    // Componentized can add components to themselves.
+    componentMixin.componentsAdd = function(c) {
+        if (typeof c.init == "function") {
+            c.init();
+        }
         this.components.push(c);
     };
-    // Componentized promise to call componentUpdate.
+    // Componentized promise to call componentsUpdate.
     // Components are passed the sprite/entity. Sprite/entity promises
     // to provide all things needed for the component.
-    componentMixin.componentUpdate = function() {
+    componentMixin.componentsUpdate = function() {
         var num = this.components.length;
         for (var i = 0; i < num; i++) {
-            this.components.update(this);
+            // Components might want to reference themselves so we pass in
+            // the sprite/entity as an arg.
+            this.components[i].update(this);
+        }
+    };
+    // Componentized might call componentsReset.
+    // Components promise to have a reset.
+    componentMixin.componentsReset = function() {
+        var num = this.components.length;
+        for (var i = 0; i < num; i++) {
+            // Components might want to reference themselves so we pass in
+            // the sprite/entity as an arg.
+            this.components[i].reset(this);
         }
     };
     // Augment the entity/sprite prototype.
@@ -71,6 +86,40 @@ var componentize = (function() {
         return entity;
     };
 })();
+
+
+
+var locomotionRandomWalkComponent = function() {
+    return Object.create({
+        randomPath: null,
+        randomPathIndex: 0,
+        init: function() {
+            this.randomPath = randomPath({
+                // Bounce up and down.
+                xrange: [game.width, game.width - 100, game.width - 300, game.width - 500, 0],
+                stepPercent: 0.005
+            });
+        },
+        update: function(owner) {
+            var p = this.randomPath[this.randomPathIndex];
+            if (p) {
+                owner.x = p.x;
+                owner.y = p.y;
+
+                this.randomPathIndex += 1;
+            } else {
+                console.log("pig being killed");
+                // Kill when we run out of path. Assume that the path generates
+                // to the edges of the screen, or when we want the pig to disappear.
+                owner.kill();
+            }
+        },
+        reset: function() {
+            this.randomPathIndex = 0;
+        }
+    });
+};
+
 
 
 // Generate a random path.
@@ -201,16 +250,18 @@ var Pig = function(x, y) {
     // Managed by the group, starts off dead.
     this.kill();
 
-    // TODO: Wrap this up as a component once I like this.
-    this.randomPath = randomPath({
-        // Bounce up and down.
-        xrange: [game.width, game.width - 100, game.width - 300, game.width - 500, 0],
-        stepPercent: 0.005
-    });
-    this.randomPathIndex = 0;
+    //TODO: Wrap this up as a component once I like this.
+    // this.randomPath = randomPath({
+    //     // Bounce up and down.
+    //     xrange: [game.width, game.width - 100, game.width - 300, game.width - 500, 0],
+    //     stepPercent: 0.005
+    // });
+    // this.randomPathIndex = 0;
 
     // Components need to be init'd per instance.
-    this.componentInit();
+    this.componentsInit();
+
+    this.componentsAdd(locomotionRandomWalkComponent());
 };
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
 // Add components to the mix.
@@ -224,7 +275,8 @@ Pig.prototype.randomStart = function() {
     //this.body.velocity.x = -100;
     this.alive = true;
 
-    this.randomPathIndex = 0;
+    //this.randomPathIndex = 0;
+    this.componentsReset();
 };
 Pig.prototype.update = function() {
     //var g = this.game;
@@ -242,17 +294,19 @@ Pig.prototype.update = function() {
     //     this.body.velocity.set(0);
     // }
 
-    var p = this.randomPath[this.randomPathIndex];
-    if (p) {
-        this.x = p.x;
-        this.y = p.y;
+    this.componentsUpdate();
 
-        this.randomPathIndex += 1;
-    } else {
-        // Kill when we run out of path. Assume that the path generates
-        // to the edges of the screen, or when we want the pig to disappear.
-        this.kill();
-    }
+    // var p = this.randomPath[this.randomPathIndex];
+    // if (p) {
+    //     this.x = p.x;
+    //     this.y = p.y;
+    //
+    //     this.randomPathIndex += 1;
+    // } else {
+    //     // Kill when we run out of path. Assume that the path generates
+    //     // to the edges of the screen, or when we want the pig to disappear.
+    //     this.kill();
+    // }
 };
 // What are these pigs chasing?
 Pig.prototype.target = null;
