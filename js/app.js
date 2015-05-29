@@ -108,7 +108,6 @@ var locomotionRandomWalkComponent = function() {
 
                 this.randomPathIndex += 1;
             } else {
-                console.log("pig being killed");
                 // Kill when we run out of path. Assume that the path generates
                 // to the edges of the screen, or when we want the pig to disappear.
                 owner.kill();
@@ -279,7 +278,11 @@ Pig.prototype.randomStart = function() {
     this.componentsReset();
 };
 Pig.prototype.update = function() {
-    //var g = this.game;
+    if (!this.alive) {
+        // Skip the update. kill()ed phaser objects still call update in
+        // the background. destroy()ed phaser objects don't.
+        return;
+    }
 
     // TODO: Add choice between seeker pigs and random walk pigs.
     // Pigs go from right to left.
@@ -456,8 +459,23 @@ Title.prototype = Object.create(Phaser.State);
 Title.prototype.preload = function() {
     // Load all queued up assets.
     assetQueue.load();
+
+    // Test out scaling.
+    // This works a bit funky.
+    // game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+    // game.scale.minWidth = 640;
+    // game.scale.minHeight = 480;
+    // game.scale.maxWidth = 1280;
+    // game.scale.maxHeight = 960;
+    // game.scale.forceLandscape = true;
+    // game.scale.pageAlignHorizontally = true;
+    // game.scale.setScreenSize(true);
 };
 Title.prototype.create = function() {
+
+    // I think, according to forum posts, this turns off anti-aliasing.
+    game.stage.smoothed = false;
+
     // The background isn't meant to be tiled, but good enough for this.
     //this.background = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'bg-space');
 
