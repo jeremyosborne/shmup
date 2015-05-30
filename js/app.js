@@ -34,93 +34,6 @@ var assetQueue = {
 
 
 
-// Work in progress of a lightweight component system to add to the Phaser
-// sprites.
-// Notes while thinking: After reading online, and having worked with some
-// component systems and the idea of entity-component-systems in the past,
-// what I really want is the abstraction of composable types based on base types
-// without enforcing hiearchy like a lot of objects in Phaser do. Just one
-// type of game approach, we'll see if it works. I think what I most need is
-// a good set of rules, and some testing.
-//
-// A mixin function that is passed a sprite that then augments the sprite.
-var componentize = (function() {
-    var componentMixin = Object.create(null);
-    // Componentized promise to call init.
-    componentMixin.componentsInit = function() {
-        this.components = [];
-    };
-    // Componentized can add components to themselves.
-    componentMixin.componentsAdd = function(c) {
-        if (typeof c.init == "function") {
-            c.init();
-        }
-        this.components.push(c);
-    };
-    // Componentized promise to call componentsUpdate.
-    // Components are passed the sprite/entity. Sprite/entity promises
-    // to provide all things needed for the component.
-    componentMixin.componentsUpdate = function() {
-        var num = this.components.length;
-        for (var i = 0; i < num; i++) {
-            // Components might want to reference themselves so we pass in
-            // the sprite/entity as an arg.
-            this.components[i].update(this);
-        }
-    };
-    // Componentized might call componentsReset.
-    // Components promise to have a reset.
-    componentMixin.componentsReset = function() {
-        var num = this.components.length;
-        for (var i = 0; i < num; i++) {
-            // Components might want to reference themselves so we pass in
-            // the sprite/entity as an arg.
-            this.components[i].reset(this);
-        }
-    };
-    // Augment the entity/sprite prototype.
-    return function(entity) {
-        for (var prop in componentMixin) {
-            entity.prototype[prop] = componentMixin[prop];
-        }
-        return entity;
-    };
-})();
-
-
-
-var locomotionRandomWalkComponent = function() {
-    return Object.create({
-        randomPath: null,
-        randomPathIndex: 0,
-        init: function() {
-            this.randomPath = randomPath({
-                // Bounce up and down.
-                xrange: [game.width, game.width - 100, game.width - 300, game.width - 500, 0],
-                stepPercent: 0.005
-            });
-        },
-        update: function(owner) {
-            var p = this.randomPath[this.randomPathIndex];
-            if (p) {
-                owner.x = p.x;
-                owner.y = p.y;
-
-                this.randomPathIndex += 1;
-            } else {
-                // Kill when we run out of path. Assume that the path generates
-                // to the edges of the screen, or when we want the pig to disappear.
-                owner.kill();
-            }
-        },
-        reset: function() {
-            this.randomPathIndex = 0;
-        }
-    });
-};
-
-
-
 // Generate a random path.
 //
 // Params:
@@ -191,6 +104,135 @@ var randomPath = function(args) {
 
 
 
+// Work in progress of a lightweight component system to add to the Phaser
+// sprites.
+// Notes while thinking: After reading online, and having worked with some
+// component systems and the idea of entity-component-systems in the past,
+// what I really want is the abstraction of composable types based on base types
+// without enforcing hiearchy like a lot of objects in Phaser do. Just one
+// type of game approach, we'll see if it works. I think what I most need is
+// a good set of rules, and some testing.
+//
+// A mixin function that is passed a sprite that then augments the sprite.
+var componentize = (function() {
+    var componentMixin = Object.create(null);
+    // Componentized promise to call init.
+    // NOTE: Phase had a .components and this overwrote it. Ooops.
+    componentMixin.componentsInit = function() {
+        this._components = [];
+    };
+    // Componentized can add components to themselves.
+    componentMixin.componentsAdd = function(c) {
+        if (typeof c.init == "function") {
+            c.init();
+        }
+        this._components.push(c);
+    };
+    // Componentized promise to call componentsUpdate.
+    // Components are passed the sprite/entity. Sprite/entity promises
+    // to provide all things needed for the component.
+    componentMixin.componentsUpdate = function() {
+        var num = this._components.length;
+        for (var i = 0; i < num; i++) {
+            // Components might want to reference themselves so we pass in
+            // the sprite/entity as an arg.
+            this._components[i].update(this);
+        }
+    };
+    // Componentized might call componentsReset.
+    // Components promise to have a reset.
+    componentMixin.componentsReset = function() {
+        var num = this._components.length;
+        for (var i = 0; i < num; i++) {
+            // Components might want to reference themselves so we pass in
+            // the sprite/entity as an arg.
+            this._components[i].reset(this);
+        }
+    };
+    // Augment the entity/sprite prototype.
+    return function(entity) {
+        for (var prop in componentMixin) {
+            entity.prototype[prop] = componentMixin[prop];
+        }
+        return entity;
+    };
+})();
+
+
+
+// Creates a somewhat random path for the entity/sprite to travel across
+// the screen.
+var locomotionRandomWalkComponent = (function() {
+    var proto = {
+        randomPath: null,
+        randomPathIndex: 0,
+        init: function() {
+            this.randomPath = randomPath({
+                // Bounce up and down.
+                xrange: [game.width, game.width - 100, game.width - 300, game.width - 500, 0],
+                stepPercent: 0.005
+            });
+        },
+        update: function(owner) {
+            var p = this.randomPath[this.randomPathIndex];
+            if (p) {
+                owner.x = p.x;
+                owner.y = p.y;
+
+                this.randomPathIndex += 1;
+            } else {
+                // Kill when we run out of path. Assume that the path generates
+                // to the edges of the screen, or when we want the pig to disappear.
+                owner.kill();
+            }
+        },
+        reset: function() {
+            this.randomPathIndex = 0;
+        }
+    };
+
+    return function() {
+        return Object.create(proto);
+    };
+})();
+
+
+
+// Entity will seek the target character.
+var locomotionSeekerComponent = (function() {
+    var proto = {
+        // game.width lies during the initial load.
+        //startX: game.width,
+        startX: null,
+        startY: null,
+        init: function() {
+            this.startX = game.width;
+            this.startY = game.rnd.between(0, game.height);
+        },
+        update: function(owner) {
+            // Pigs go from right to left.
+            if (owner.target && game.physics.arcade.distanceBetween(owner, owner.target) > 5) {
+                // NOTE: Adjust the rotation by PI because the game makes assumptions
+                // all things point to the right (or more fairly angles are angles)
+                // and our sprite is facing left by default.
+                owner.rotation = game.physics.arcade.moveToObject(owner, owner.target, 125) + Math.PI;
+            } else {
+                owner.body.velocity.set(0);
+            }
+        },
+        reset: function(owner) {
+            owner.x = this.startX;
+            owner.y = this.startY;
+        }
+    };
+
+    return function() {
+        return Object.create(proto);
+    };
+})();
+
+
+
 assetQueue.add(function() {
     // width, height, name, true means add to cache (later retrieval by name).
     game.add.bitmapData(10, 10, "confetti", true).fill(255, 255, 255, 1);
@@ -249,32 +291,22 @@ var Pig = function(x, y) {
     // Managed by the group, starts off dead.
     this.kill();
 
-    //TODO: Wrap this up as a component once I like this.
-    // this.randomPath = randomPath({
-    //     // Bounce up and down.
-    //     xrange: [game.width, game.width - 100, game.width - 300, game.width - 500, 0],
-    //     stepPercent: 0.005
-    // });
-    // this.randomPathIndex = 0;
-
     // Components need to be init'd per instance.
     this.componentsInit();
-
-    this.componentsAdd(locomotionRandomWalkComponent());
+    // Then add the components we want.
+    if (Phaser.Math.chanceRoll(50)) {
+        this.componentsAdd(locomotionRandomWalkComponent());
+    } else {
+        this.componentsAdd(locomotionSeekerComponent());
+    }
 };
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
 // Add components to the mix.
 componentize(Pig);
 Pig.prototype.game = game;
-Pig.prototype.random = new Phaser.RandomDataGenerator();
-// Pigs arrive from random corners. This is the main way pigs enter the game
-// and we assume pigs will be revived.
-Pig.prototype.randomStart = function() {
-    this.reset(this.game.world.width, this.random.integerInRange(0, this.game.world.height));
-    //this.body.velocity.x = -100;
-    this.alive = true;
-
-    //this.randomPathIndex = 0;
+Pig.prototype.start = function() {
+    this.reset(0, 0);
+    this.revive();
     this.componentsReset();
 };
 Pig.prototype.update = function() {
@@ -284,32 +316,7 @@ Pig.prototype.update = function() {
         return;
     }
 
-    // TODO: Add choice between seeker pigs and random walk pigs.
-    // Pigs go from right to left.
-    // if (this.target && g.physics.arcade.distanceBetween(this, this.target) > 5) {
-    //     // Conveniently returns the angle between the pig and the dino so
-    //     // we can face the pig towards the dino.
-    //     // NOTE: Adjust the rotation by PI because the game makes assumptions
-    //     // all things point to the right (or more fairly angles are angles)
-    //     // and our sprite is facing left by default.
-    //     this.rotation = g.physics.arcade.moveToObject(this, this.target, 125) + Math.PI;
-    // } else {
-    //     this.body.velocity.set(0);
-    // }
-
     this.componentsUpdate();
-
-    // var p = this.randomPath[this.randomPathIndex];
-    // if (p) {
-    //     this.x = p.x;
-    //     this.y = p.y;
-    //
-    //     this.randomPathIndex += 1;
-    // } else {
-    //     // Kill when we run out of path. Assume that the path generates
-    //     // to the edges of the screen, or when we want the pig to disappear.
-    //     this.kill();
-    // }
 };
 // What are these pigs chasing?
 Pig.prototype.target = null;
@@ -474,7 +481,7 @@ Title.prototype.preload = function() {
 Title.prototype.create = function() {
 
     // I think, according to forum posts, this turns off anti-aliasing.
-    game.stage.smoothed = false;
+    //game.stage.smoothed = false;
 
     // The background isn't meant to be tiled, but good enough for this.
     //this.background = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'bg-space');
@@ -489,13 +496,13 @@ Title.prototype.create = function() {
 
     // Every game needs an (inane) story.
     // Scroll from right to left.
-    this.marqueeText = this.game.add.text(this.game.world.width + 20, this.game.world.height - 48,
-        [
-            "TBA....",
-        ].join(" "), {
-        fill: "#ffffff",
-		font: "bold 28px Arial",
-	});
+    // this.marqueeText = this.game.add.text(this.game.world.width + 20, this.game.world.height - 48,
+    //     [
+    //         "TBA....",
+    //     ].join(" "), {
+    //     fill: "#ffffff",
+	// 	font: "bold 28px Arial",
+	// });
 
     this.game.input.onDown.add(function() {
         // This event listener gets purged when we transition to "play" state.
@@ -503,7 +510,7 @@ Title.prototype.create = function() {
     }.bind(this));
 };
 Title.prototype.update = function() {
-    this.marqueeText.x -= 3;
+    //this.marqueeText.x -= 3;
 
     //this.background.tilePosition.y += 0.5;
 };
@@ -535,7 +542,6 @@ Play.prototype.explodePig = function(pig) {
         this.pigSplosion.boom(pig.x, pig.y);
         //this.game.sound.play("explosion-pig", true);
         pig.kill();
-        pig.exists = false;
 
         // And get a point.
         this.scoreKeeper.add(1);
@@ -545,36 +551,18 @@ Play.prototype.addPig = function() {
     // Bring in the replacement pig.
     var nextPig = this.pigs.getFirstDead();
     if (nextPig) {
-        nextPig.randomStart();
+        nextPig.start();
     }
 };
 Play.prototype.create = function() {
-    var g = this.game;
     var i;
 
+    // To make the sprite move we need to enable Arcade Physics
+    game.physics.startSystem(Phaser.Physics.ARCADE);
 
     var confetti = game.add.bitmapData(5, 5, "bullet", true);
     // r, g, b, a
     confetti.fill(100, 255, 100, 1);
-
-    this.bullets = game.add.group();
-    this.bullets.enableBody = true;
-    this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
-    this.bullets.createMultiple(30, this.game.cache.getBitmapData("bullet"));
-    this.bullets.setAll('anchor.x', 0.5);
-    this.bullets.setAll('anchor.y', 0.5);
-    this.bullets.setAll('outOfBoundsKill', true);
-    this.bullets.setAll('checkWorldBounds', true);
-    // for (i = 0; i < 20; i++) {
-    //     var b = this.bullets.create(0, 0, this.game.cache.getBitmapData("bullet"));
-    //     b.name = 'bullet' + i;
-    //     b.exists = false;
-    //     b.visible = false;
-    //     b.checkWorldBounds = true;
-    //     b.events.onOutOfBounds.add(function(bullet) {
-    //         bullet.kill();
-    //     });
-    // }
 
     // The background isn't meant to be tiled, but good enough for this.
     //this.background = g.add.tileSprite(0, 0, g.width, g.height, 'bg-space');
@@ -586,15 +574,21 @@ Play.prototype.create = function() {
     // TODO: Get new background music.
     //g.sound.play("bg-music", 0.25, true);
 
-    // To make the sprite move we need to enable Arcade Physics
-    g.physics.startSystem(Phaser.Physics.ARCADE);
-
     this.levelDisplay = new LevelDisplay();
 
     this.purpleDino = new PurpleDino(this.game.world.centerX, this.game.world.centerY);
 
     this.purpleDinoSplosion = new ConfettiEmitter();
     this.purpleDinoSplosion.colorize(0x942fcd);
+
+    this.bullets = game.add.group();
+    this.bullets.enableBody = true;
+    this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+    this.bullets.createMultiple(30, this.game.cache.getBitmapData("bullet"));
+    this.bullets.setAll('anchor.x', 0.5);
+    this.bullets.setAll('anchor.y', 0.5);
+    this.bullets.setAll('outOfBoundsKill', true);
+    this.bullets.setAll('checkWorldBounds', true);
 
     this.bulletTimer = this.game.time.create();
     this.bulletTimer.loop(150, function() {
@@ -607,11 +601,11 @@ Play.prototype.create = function() {
     }.bind(this));
     this.bulletTimer.start();
 
-    Pig.targetForAll(this.purpleDino);
     this.pigs = this.game.add.group();
     for (i = 0; i < 10; i++) {
         this.pigs.add(new Pig());
     }
+    Pig.targetForAll(this.purpleDino);
 
     this.pigSplosion = new ConfettiEmitter();
     // Random colors by default.
