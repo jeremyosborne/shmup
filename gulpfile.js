@@ -6,13 +6,38 @@
 var gulp = require("gulp");
 // A gulp version of connect for running a dev webserver.
 var connect = require("gulp-connect");
+var concat = require("gulp-concat");
 
 
 
-// The default is a dev build plus file watch and rebuild on the fly.
-// The default dev environment is also the most bleeding edge.
-gulp.task("default", function() {
+var paths = {
+    js: [
+        "js/phaser.js",
+        // This needs be first.
+        "js/game.js",
+        "js/utils.js",
+        "js/components.js",
+        "js/entities.js",
+        "js/stages.js",
+        // This needs be last.
+        "js/main.js",
+    ]
+};
+
+
+
+gulp.task("js-dev", function() {
+    return gulp.src(paths.js)
+        .pipe(concat("app.js"))
+        .pipe(gulp.dest("./"));
+});
+
+
+
+gulp.task("default", ["js-dev"], function() {
     connect.server({
         port: "4242",
     });
+
+    gulp.watch(paths.js, ['js-dev']);
 });
