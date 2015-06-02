@@ -1,5 +1,5 @@
 /* jshint undef:true, browser:true */
-/* global game:false */
+/* global game:false, randomPath:false */
 
 // Work in progress of a lightweight component system to add to the Phaser
 // sprites.
@@ -19,11 +19,17 @@ var componentize = (function() {
         this._components = [];
     };
     // Componentized can add components to themselves.
-    componentMixin.componentsAdd = function(c) {
-        if (typeof c.init == "function") {
-            c.init();
+    componentMixin.componentsAdd = function(name) {
+        if (!componentize.index[name]) {
+            throw new Error("Component does not exist: " + name);
+        } else {
+            // All components should be factory functions.
+            var c = componentize.index[name]();
+            if (typeof c.init == "function") {
+                c.init();
+            }
+            this._components.push(c);
         }
-        this._components.push(c);
     };
     // Componentized promise to call componentsUpdate.
     // Components are passed the sprite/entity. Sprite/entity promises
@@ -54,6 +60,16 @@ var componentize = (function() {
         return entity;
     };
 })();
+// Keeps a registry of components.
+componentize.index = {};
+// Adds components to the index.
+componentize.register = function(name, componentFactory) {
+    if (componentize.index[name]) {
+        throw new Error("Component already exists in the registry: " + name);
+    } else {
+        componentize.index[name] = componentFactory;
+    }
+};
 
 
 
@@ -92,6 +108,7 @@ var locomotionRandomWalkComponent = (function() {
         return Object.create(proto);
     };
 })();
+componentize.register("locomotionRandomWalk", locomotionRandomWalkComponent);
 
 
 
@@ -127,3 +144,4 @@ var locomotionSeekerComponent = (function() {
         return Object.create(proto);
     };
 })();
+componentize.register("locomotionSeeker", locomotionSeekerComponent);

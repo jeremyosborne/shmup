@@ -4,7 +4,7 @@
 //
 // http://gulpjs.com/
 var gulp = require("gulp");
-// A gulp version of connect for running a dev webserver.
+// For dev server.
 var connect = require("gulp-connect");
 var concat = require("gulp-concat");
 

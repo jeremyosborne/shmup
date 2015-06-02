@@ -9,7 +9,7 @@
   },
   "license": "MIT",
   "scripts": {
-      "start": "node node_modules/.bin/gulp"
+    "start": "node node_modules/.bin/gulp"
   },
   "dependencies": {},
   "devDependencies": {

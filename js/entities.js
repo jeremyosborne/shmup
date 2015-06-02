@@ -1,5 +1,5 @@
 /* jshint unused:true, undef:true, browser:true */
-/* global Phaser:false, game:false, assetQueue:false, componentize:false, locomotionRandomWalkComponent:false, locomotionSeekerComponent:false */
+/* global Phaser:false, game:false, assetQueue:false, componentize:false */
 
 assetQueue.add(function() {
     // width, height, name, true means add to cache (later retrieval by name).
@@ -63,9 +63,9 @@ var Pig = function(x, y) {
     this.componentsInit();
     // Then add the components we want.
     if (Phaser.Math.chanceRoll(50)) {
-        this.componentsAdd(locomotionRandomWalkComponent());
+        this.componentsAdd("locomotionRandomWalk");
     } else {
-        this.componentsAdd(locomotionSeekerComponent());
+        this.componentsAdd("locomotionSeeker");
     }
 };
 Pig.prototype = Object.create(Phaser.Sprite.prototype);
